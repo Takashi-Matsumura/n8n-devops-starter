@@ -1,0 +1,143 @@
+{
+  "name": "GitHub Advisory Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/advisories",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "type",
+                "value": "reviewed"
+              },
+              {
+                "name": "per_page",
+                "value": "5"
+              }
+            ]
+          }
+        }
+      },
+      "id": "github-api",
+      "name": "GitHub Advisory API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const advisory = item.json;\n  const severity = advisory.severity || 'info';\n  const severityMap = { 'critical': 'critical', 'high': 'high', 'medium': 'moderate', 'low': 'low' };\n  \n  results.push({\n    json: {\n      source: 'github-advisory',\n      severity: severityMap[severity] || 'info',\n      title: advisory.summary || 'GitHub Advisory',\n      summary: advisory.description ? advisory.description.substring(0, 500) : 'No description available',\n      rawData: advisory\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "transform",
+      "name": "Transform Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://app:3000/api/webhook/security-report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.WEBHOOK_API_KEY || 'dev-secret-key-change-me'}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "={{$json.source}}"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json.severity}}"
+            },
+            {
+              "name": "title",
+              "value": "={{$json.title}}"
+            },
+            {
+              "name": "summary",
+              "value": "={{$json.summary}}"
+            },
+            {
+              "name": "rawData",
+              "value": "={{$json.rawData}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "webhook-send",
+      "name": "Send to Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "GitHub Advisory API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Advisory API": {
+      "main": [
+        [
+          {
+            "node": "Transform Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Data": {
+      "main": [
+        [
+          {
+            "node": "Send to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

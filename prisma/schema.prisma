@@ -1,0 +1,20 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+model SecurityReport {
+  id        String   @id @default(cuid())
+  source    String   // "github-advisory", "ssl-check", "npm-audit"
+  severity  String   // "critical", "high", "moderate", "low", "info"
+  title     String
+  summary   String
+  rawData   String   // JSON文字列
+  status    String   @default("new") // "new", "reviewed", "resolved"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

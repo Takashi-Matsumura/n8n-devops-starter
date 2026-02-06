@@ -1,0 +1,159 @@
+{
+  "name": "SSL Certificate Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Configure your domains to check here\nconst domains = ['example.com', 'your-domain.com'];\n\nreturn domains.map(domain => ({ json: { domain } }));"
+      },
+      "id": "domain-list",
+      "name": "Domain List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{$json.domain}}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "ssl-request",
+      "name": "SSL Check Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const domain = item.json.domain || 'unknown';\n  const statusCode = item.json.statusCode;\n  const error = item.json.error;\n  \n  let severity = 'info';\n  let title = `SSL Check: ${domain}`;\n  let summary = '';\n  \n  if (error) {\n    severity = 'critical';\n    title = `SSL Error: ${domain}`;\n    summary = `SSL connection failed for ${domain}: ${error.message || error}`;\n  } else if (statusCode >= 200 && statusCode < 400) {\n    severity = 'info';\n    summary = `SSL certificate for ${domain} is valid. Status: ${statusCode}`;\n  } else {\n    severity = 'high';\n    summary = `SSL check returned unexpected status ${statusCode} for ${domain}`;\n  }\n  \n  results.push({\n    json: {\n      source: 'ssl-check',\n      severity,\n      title,\n      summary,\n      rawData: { domain, statusCode, error, checkedAt: new Date().toISOString() }\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "analyze",
+      "name": "Analyze Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://app:3000/api/webhook/security-report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.WEBHOOK_API_KEY || 'dev-secret-key-change-me'}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "={{$json.source}}"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json.severity}}"
+            },
+            {
+              "name": "title",
+              "value": "={{$json.title}}"
+            },
+            {
+              "name": "summary",
+              "value": "={{$json.summary}}"
+            },
+            {
+              "name": "rawData",
+              "value": "={{$json.rawData}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "webhook-send",
+      "name": "Send to Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1130, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Domain List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domain List": {
+      "main": [
+        [
+          {
+            "node": "SSL Check Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSL Check Request": {
+      "main": [
+        [
+          {
+            "node": "Analyze Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Results": {
+      "main": [
+        [
+          {
+            "node": "Send to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - WEBHOOK_API_KEY=${WEBHOOK_API_KEY:-dev-secret-key-change-me}
+    volumes:
+      - app-data:/app/prisma
+    depends_on:
+      - n8n
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-password}
+      - WEBHOOK_URL=http://app:3000
+    volumes:
+      - n8n-data:/home/node/.n8n
+
+volumes:
+  app-data:
+  n8n-data:
