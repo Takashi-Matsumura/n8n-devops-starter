@@ -45,8 +45,8 @@ n8n ワークフローと連携して、セキュリティレポートを自動�
 ### 1. クローン & インストール
 
 ```bash
-git clone https://github.com/Takashi-Matsumura/n8n-devops-starter-.git
-cd n8n-devops-starter-
+git clone https://github.com/Takashi-Matsumura/n8n-devops-starter.git
+cd n8n-devops-starter
 npm install
 ```
 
