@@ -78,9 +78,17 @@ export default function Dashboard() {
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <h1 className="text-2xl font-bold">Security Dashboard</h1>
-          <span className="text-sm text-muted-foreground">
-            n8n DevOps Starter
-          </span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/test"
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+            >
+              Test Webhook
+            </Link>
+            <span className="text-sm text-muted-foreground">
+              n8n DevOps Starter
+            </span>
+          </div>
         </div>
       </header>
 
