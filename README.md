@@ -119,11 +119,54 @@ docker compose up -d --build
 
 ### n8n の初期セットアップ
 
-1. `http://localhost:5678` にアクセスし、オーナーアカウントを作成
-2. 左上の「+」→「Workflow」で新規ワークフローを作成
-3. 右上の「...」→「Import from File」で `n8n-workflows/` 内の JSON をインポート
-4. 「Execute workflow」で手動テスト実行し、ダッシュボードにデータが届くことを確認
-5. 右上のトグルを Active にして定期実行を有効化
+#### Step 1: オーナーアカウントの作成
+
+1. ブラウザで [http://localhost:5678](http://localhost:5678) にアクセス
+2. 「Set up owner account」画面が表示される
+3. Email、名前、パスワード（8文字以上、数字1つ+大文字1つ必要）を入力して「Next」
+4. 「Get paid features for free (forever)」ダイアログが表示されたら「Send me a free license key」をクリック（推奨）
+   - Advanced debugging、Execution search、Folders 機能が無料で使えるようになる
+
+#### Step 2: ワークフローのインポート
+
+1. ホーム画面の左上「**+**」→「**Workflow**」をクリック
+2. ワークフロー編集画面が開いたら、右上の「**...**」(三点メニュー) → 「**Import from File**」を選択
+3. `n8n-workflows/github-advisory-check.json` を選択してインポート
+4. 4つのノードが表示される:
+   ```
+   Schedule Trigger → GitHub Advisory API → Transform Data → Send to Dashboard
+   ```
+5. 同様の手順で `n8n-workflows/ssl-check.json` もインポート
+
+#### Step 3: ワークフローの手動テスト実行
+
+1. インポートしたワークフロー（例: GitHub Advisory Check）を開く
+2. 画面下部の「**Execute workflow**」ボタンをクリック
+3. 全ノードが緑のチェックマークになれば成功
+4. [http://localhost:3000](http://localhost:3000) のダッシュボードを開き、レポートが追加されていることを確認
+
+#### Step 4: 定期実行の有効化
+
+1. ワークフロー編集画面の右上にある「**Publish**」ボタンをクリック
+2. ワークフローが Active になり、設定したスケジュールで自動実行される
+   - GitHub Advisory Check: 6時間ごと
+   - SSL Certificate Check: 24時間ごと
+
+#### ワークフローのデータフロー
+
+```
+n8n (Docker: n8n)                        app (Docker: app)
+┌──────────────────────┐                ┌──────────────────────┐
+│ Schedule Trigger     │                │                      │
+│       ↓              │                │  POST /api/webhook/  │
+│ External API (GitHub)│                │  security-report     │
+│       ↓              │   HTTP POST    │       ↓              │
+│ Transform Data       │ ─────────────→ │  認証 → バリデーション │
+│       ↓              │ x-api-key 認証 │       ↓              │
+│ Send to Dashboard    │                │  SQLite に保存       │
+└──────────────────────┘                └──────────────────────┘
+  http://app:3000 (Docker 内部ネットワーク経由で通信)
+```
 
 ## API Reference
 
