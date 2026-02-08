@@ -2,9 +2,13 @@ FROM node:20-alpine AS base
 
 # Install dependencies
 FROM base AS deps
+RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci \
+    && cd node_modules/better-sqlite3 \
+    && rm -rf build prebuilds \
+    && npx --yes node-gyp rebuild
 
 # Build the application
 FROM base AS builder

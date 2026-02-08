@@ -54,6 +54,7 @@
     },
     {
       "parameters": {
+        "method": "POST",
         "url": "http://app:3000/api/webhook/security-report",
         "sendHeaders": true,
         "headerParameters": {

@@ -75,6 +75,20 @@ npm run dev
 
 ### 5. テストデータの投入
 
+ブラウザで [http://localhost:3000/test](http://localhost:3000/test) にアクセスし、プリセットボタンをクリックするだけでテストデータを送信できます。
+
+ダッシュボードのヘッダーにある「Test Webhook」リンクからもアクセスできます。
+
+5種類のプリセット:
+- **Critical**: GitHub Advisory (CVE リモートコード実行)
+- **High**: npm audit (既知の脆弱性)
+- **Moderate**: SSL 証明書期限切れ警告
+- **Low**: npm audit (低リスク依存関係)
+- **Info**: SSL チェック正常
+
+<details>
+<summary>curl でテストする場合</summary>
+
 ```bash
 curl -X POST http://localhost:3000/api/webhook/security-report \
   -H "Content-Type: application/json" \
@@ -88,18 +102,28 @@ curl -X POST http://localhost:3000/api/webhook/security-report \
   }'
 ```
 
+</details>
+
 ## Docker Compose
 
 アプリケーションと n8n をまとめて起動できます。
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 | サービス | URL | 説明 |
 |---------|-----|------|
 | Dashboard | http://localhost:3000 | セキュリティダッシュボード |
 | n8n | http://localhost:5678 | ワークフロー管理画面 |
+
+### n8n の初期セットアップ
+
+1. `http://localhost:5678` にアクセスし、オーナーアカウントを作成
+2. 左上の「+」→「Workflow」で新規ワークフローを作成
+3. 右上の「...」→「Import from File」で `n8n-workflows/` 内の JSON をインポート
+4. 「Execute workflow」で手動テスト実行し、ダッシュボードにデータが届くことを確認
+5. 右上のトグルを Active にして定期実行を有効化
 
 ## API Reference
 
@@ -159,11 +183,14 @@ GET /api/reports?severity=critical&status=new
 ```
 app/
 ├── page.tsx                            # ダッシュボード (一覧画面)
+├── test/page.tsx                       # テスト送信 UI
 ├── reports/[id]/page.tsx               # レポート詳細画面
 └── api/
-    ├── webhook/security-report/route.ts  # Webhook 受信 API
-    ├── reports/route.ts                  # レポート一覧 API
-    └── reports/[id]/route.ts             # レポート詳細・更新 API
+    ├── webhook/
+    │   ├── security-report/route.ts    # Webhook 受信 API
+    │   └── test/route.ts              # テスト送信プロキシ API
+    ├── reports/route.ts                # レポート一覧 API
+    └── reports/[id]/route.ts           # レポート詳細・更新 API
 components/ui/                          # shadcn/ui コンポーネント
 lib/prisma.ts                           # Prisma クライアント (singleton)
 prisma/schema.prisma                    # データベーススキーマ
@@ -171,6 +198,7 @@ prisma.config.ts                        # Prisma 7 設定
 n8n-workflows/                          # n8n ワークフローテンプレート
 Dockerfile                              # マルチステージビルド
 docker-compose.yml                      # app + n8n
+.dockerignore                           # Docker ビルド除外設定
 ```
 
 ## License

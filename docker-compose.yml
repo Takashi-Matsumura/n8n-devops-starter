@@ -19,6 +19,8 @@ services:
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-password}
       - WEBHOOK_URL=http://app:3000
+      - WEBHOOK_API_KEY=${WEBHOOK_API_KEY:-dev-secret-key-change-me}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     volumes:
       - n8n-data:/home/node/.n8n
 
